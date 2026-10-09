@@ -11,7 +11,12 @@ namespace ProtocoloLazaro
     {
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]         private static void Begin()
         {
-            if (!Environment.GetCommandLineArgs().Contains("--lazaro-test")) return;
+            bool requested = Environment.GetCommandLineArgs().Contains("--lazaro-test");
+            #if UNITY_EDITOR
+            requested |= UnityEditor.SessionState.GetBool("Lazaro.RunValidation", false);
+            UnityEditor.SessionState.SetBool("Lazaro.RunValidation", false);
+            #endif
+            if (!requested) return;
             var runner = new GameObject("Runtime validation");
             DontDestroyOnLoad(runner);
             runner.AddComponent<RuntimeSmokeTest>();
@@ -38,6 +43,7 @@ namespace ProtocoloLazaro
                 Check(enemy.GetComponent<NavMeshAgent>().isOnNavMesh, "enemy on NavMesh");
                 enemy.enabled = false;
                 enemy.StopAllCoroutines();
+                enemy.GetComponent<NavMeshAgent>().isStopped = true;
             }
             Check(player.Current == 100 && weapon.Magazine == 6 && weapon.Reserve == 6, "initial resources");
             var medkit = FindAnyObjectByType<Medkit>();
@@ -49,7 +55,40 @@ namespace ProtocoloLazaro
             Check(weapon.TryShoot(), "shoot accepted");
             Check(weapon.Magazine == 5 && weapon.Reserve == 6, "shot consumes one round");
             Check(weapon.TryReload() && !weapon.TryReload(), "reload cannot duplicate");
+            var origin = player.transform.position;
+            var visibleEnemy = enemies[0];
+            var blockedEnemy = enemies[1];
+            Check(visibleEnemy.GetComponent<NavMeshAgent>().Warp(origin + Vector3.left * 2), "visible pulse receiver positioned");
+            Check(blockedEnemy.GetComponent<NavMeshAgent>().Warp(origin + Vector3.right * 2), "occluded pulse receiver positioned");
+            var blocker = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            blocker.name = "Temporary validation occluder";
+            blocker.layer = 10;
+            blocker.transform.position = origin + Vector3.right + Vector3.up;
+            blocker.transform.localScale = new Vector3(.2f, 3, 2);
+            Physics.SyncTransforms();
             Check(pulse.TryPulse(), "pulse during reload");
+            Check(visibleEnemy.State == ZombieState.Stunned, "pulse stuns visible nearby enemy");
+            Check(blockedEnemy.State == ZombieState.Investigate, "wall blocks stun but transmits noise");
+            visibleEnemy.Damage(35);
+            visibleEnemy.Damage(35);
+            Check(!visibleEnemy.IsDead, "two hits do not kill infected");
+            visibleEnemy.Damage(35);
+            Check(visibleEnemy.IsDead && !visibleEnemy.GetComponent<Collider>().enabled, "third hit kills and removes collision");
+            visibleEnemy.Stun(3);
+            visibleEnemy.Hear(origin);
+            Check(visibleEnemy.IsDead, "dead enemy ignores pulse and noise");
+            Destroy(blocker);
+            var attacker = Instantiate(enemies[2], origin + Vector3.forward, Quaternion.Euler(0, 180, 0));
+            attacker.name = "Temporary validation attacker";
+            Check(attacker.GetComponent<NavMeshAgent>().Warp(origin + Vector3.forward), "attacker positioned on NavMesh");
+            attacker.enabled = true;
+            yield return null;
+            yield return null;
+            Check(attacker.State == ZombieState.Attack, "nearby visible player triggers attack windup");
+            attacker.Stun(3);
+            yield return new WaitForSeconds(.5f);
+            Check(player.Current == 80 && attacker.State == ZombieState.Stunned, "stun cancels pending melee damage");
+            Destroy(attacker.gameObject);
             Check(!pulse.TryPulse(), "pulse cooldown enforced");
             float remaining = pulse.Remaining;
             GameManager.Instance.Pause();
@@ -90,7 +129,8 @@ namespace ProtocoloLazaro
             Check(GameManager.Instance.State == GameState.MainMenu && Time.timeScale == 1 && !AudioListener.pause, "menu restores global state");
             Debug.Log("LAZARO_TEST_COMPLETE");
             #if UNITY_EDITOR
-            UnityEditor.EditorApplication.Exit(0);
+            if (Environment.GetCommandLineArgs().Contains("--lazaro-test")) UnityEditor.EditorApplication.Exit(0);
+            else UnityEditor.EditorApplication.isPlaying = false;
             #else
             Application.Quit(0);
             #endif
