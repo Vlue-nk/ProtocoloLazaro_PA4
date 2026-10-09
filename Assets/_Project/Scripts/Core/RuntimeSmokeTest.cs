@@ -123,6 +123,25 @@ namespace ProtocoloLazaro
                 player.Damage(100);
                 Check(GameManager.Instance.State == GameState.Lost, "defeat " + (i+1));
             }
+            GameManager.Instance.Restart();
+            yield return null;
+            yield return null;
+            player = FindAnyObjectByType<PlayerHealth>();
+            player.GetComponent<PlayerController>().enabled = false;
+            player.GetComponent<CharacterController>().enabled = false;
+            foreach (var enemy in FindObjectsByType<ZombieAI>(FindObjectsSortMode.None))
+            {
+                enemy.enabled = false;
+                enemy.StopAllCoroutines();
+                enemy.GetComponent<NavMeshAgent>().isStopped = true;
+            }
+            var aimedStation = FindAnyObjectByType<PowerStation>();
+            player.transform.position = aimedStation.transform.position + Vector3.back * 2;
+            var aimingCamera = player.GetComponentInChildren<Camera>();
+            aimingCamera.transform.LookAt(aimedStation.transform.position + Vector3.up * .85f);
+            Physics.SyncTransforms();
+            Check(player.GetComponent<PulseEmitter>().TryPulse(), "aimed station pulse emitted");
+            Check(aimedStation.IsActive && FindAnyObjectByType<MissionManager>().Activated == 1, "camera raycast activates aimed station");
             GameManager.Instance.Menu();
             yield return null;
             yield return null;

@@ -91,7 +91,7 @@ public static class BuildLazaroScene
   var ambient=new GameObject("Ambient machinery").AddComponent<AudioSource>();ambient.clip=Clip("SciFiSounds","spaceEngineLow_000");ambient.loop=true;ambient.volume=.18f;ambient.playOnAwake=true;
   var profile=AssetDatabase.LoadAssetAtPath<VolumeProfile>(Base+"Settings/Atmosphere.asset");if(!profile){profile=ScriptableObject.CreateInstance<VolumeProfile>();AssetDatabase.CreateAsset(profile,Base+"Settings/Atmosphere.asset");var bloom=profile.Add<Bloom>();bloom.intensity.Override(.25f);var vignette=profile.Add<Vignette>();vignette.intensity.Override(.18f);foreach(var component in profile.components)AssetDatabase.AddObjectToAsset(component,profile);}
   var volume=new GameObject("Atmosphere").AddComponent<Volume>();volume.isGlobal=true;volume.sharedProfile=profile;
-  GameplayUI();EditorSceneManager.SaveScene(scene,Base+"Scenes/Laboratory_Main.unity");
+  GameplayUI();LaboratoryArtPass.Decorate();EditorSceneManager.SaveScene(scene,Base+"Scenes/Laboratory_Main.unity");
   MainMenu();EditorBuildSettings.scenes=new[]{new EditorBuildSettingsScene(Base+"Scenes/MainMenu.unity",true),new EditorBuildSettingsScene(Base+"Scenes/Laboratory_Main.unity",true)};
   PlayerSettings.productName="Protocolo Lázaro";PlayerSettings.companyName="ProtocoloLazaro";PlayerSettings.defaultScreenWidth=1920;PlayerSettings.defaultScreenHeight=1080;PlayerSettings.fullScreenMode=FullScreenMode.FullScreenWindow;
   AssetDatabase.SaveAssets();AssetDatabase.Refresh();Validate();Debug.Log("LAZARO_SCENES_VALIDATED");
