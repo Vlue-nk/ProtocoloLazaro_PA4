@@ -3,7 +3,7 @@ using UnityEditor.SceneManagement;
 using UnityEngine;
 public static class CreateMenuScene
 {
-    [MenuItem("Lazaro/Open Laboratory %#l")]
+    [MenuItem("Lazaro/Open Laboratory")]
     public static void OpenLaboratory()
     {
         if (EditorApplication.isPlaying) { Debug.LogWarning("Stop Play mode before opening an editing scene."); return; }
@@ -17,8 +17,12 @@ public static class CreateMenuScene
         }
         EditorSceneManager.OpenScene("Assets/_Project/Scenes/Laboratory_Main.unity");
         var view = SceneView.lastActiveSceneView ?? EditorWindow.GetWindow<SceneView>();
-        view.LookAt(new Vector3(0,0,0), Quaternion.Euler(60,0,0), 38);
-        Selection.activeGameObject = GameObject.Find("Laboratory Geometry");
+        view.in2DMode = false;
+        view.orthographic = false;
+        view.LookAt(Vector3.zero, Quaternion.Euler(55,-35,0), 27);
+        var ceiling = GameObject.Find("Ceiling - hide in Scene view to inspect interior");
+        if (ceiling) SceneVisibilityManager.instance.Hide(ceiling, true);
+        Selection.activeGameObject = GameObject.Find("Player");
         view.Focus();
     }
 }

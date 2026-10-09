@@ -1,10 +1,10 @@
 using UnityEngine;
-using UnityEngine.UI;
+using TMPro;
 namespace ProtocoloLazaro
 {
     public sealed class HUDController : MonoBehaviour
     {
-        [SerializeField] private Text hp,ammo,objective,pulse,prompt;
+        [SerializeField] private TMP_Text hp,ammo,objective,pulse,prompt;
         [SerializeField] private GameObject pausePanel,winPanel,losePanel;
         private PlayerHealth health;
         private WeaponRaycast weapon;
@@ -41,9 +41,9 @@ namespace ProtocoloLazaro
         }
         void Update()
         {
-            if(pulse&&emitter)pulse.text=emitter.Remaining<=0?"[Q] PULSO LISTO":"PULSO · "+Mathf.CeilToInt(emitter.Remaining)+" s";
+            if(pulse&&emitter)pulse.text=emitter.Remaining<=0?"[Q] PULSO LISTO":"PULSO Â· "+Mathf.CeilToInt(emitter.Remaining)+" s";
             if(prompt&&player)prompt.text=player.Prompt;
-            if(ammo&&weapon&&weapon.IsReloading)ammo.text="RECARGANDO…";
+            if(ammo&&weapon&&weapon.IsReloading)ammo.text="RECARGANDOâ€¦";
             else if(ammo&&weapon)SetAmmo(weapon.Magazine,weapon.Reserve);
         }
         void SetHealth(int a,int b)
@@ -52,11 +52,11 @@ namespace ProtocoloLazaro
         }
         void SetAmmo(int a,int b)
         {
-            if(ammo)ammo.text=$"MUNICIÓN   {a} / {b}";
+            if(ammo)ammo.text=$"MUNICIÃ“N   {a} / {b}";
         }
         void SetMission(int a,int b)
         {
-            if(objective)objective.text=a==b?"MUESTRA ESTABLE · REGRESA A EXTRACCIÓN":$"REINICIA LAS ESTACIONES   {a} / {b}";
+            if(objective)objective.text=a==b?"MUESTRA ESTABLE Â· REGRESA A EXTRACCIÃ“N":$"REINICIA LAS ESTACIONES   {a} / {b}";
         }
         void ShowState(GameState state)
         {
