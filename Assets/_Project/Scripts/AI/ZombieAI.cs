@@ -23,6 +23,7 @@ namespace ProtocoloLazaro
         }
         =ZombieState.Patrol;
         public bool IsDead=>State==ZombieState.Dead;
+        public event System.Action<ZombieState> StateChanged;
         void Awake()
         {
             agent=GetComponent<NavMeshAgent>();
@@ -152,6 +153,7 @@ namespace ProtocoloLazaro
             strikePending=false;
             if(agent.enabled&&agent.isOnNavMesh)agent.isStopped=next==ZombieState.Attack||next==ZombieState.Stunned||next==ZombieState.Dead;
             if(animator&&next==ZombieState.Attack)animator.SetTrigger("Attack");
+            StateChanged?.Invoke(next);
         }
         public void Hear(Vector3 position)
         {

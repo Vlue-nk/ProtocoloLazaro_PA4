@@ -41,6 +41,8 @@ namespace ProtocoloLazaro
             foreach (var enemy in enemies)
             {
                 Check(enemy.GetComponent<NavMeshAgent>().isOnNavMesh, "enemy on NavMesh");
+                var enemyAudio = enemy.GetComponent<AudioSource>();
+                Check(enemyAudio && enemyAudio.spatialBlend == 1 && enemyAudio.maxDistance == 14, "enemy audio is positional");
                 enemy.enabled = false;
                 enemy.StopAllCoroutines();
                 enemy.GetComponent<NavMeshAgent>().isStopped = true;

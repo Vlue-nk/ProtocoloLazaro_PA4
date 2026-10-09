@@ -3,6 +3,7 @@ using System.Linq;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using ProtocoloLazaro;
 
 /// <summary>Installs modular art over the validated collision layout.</summary>
 public static class LaboratoryArtPass
@@ -31,11 +32,25 @@ public static class LaboratoryArtPass
 
     public static void Decorate()
     {
+        InstallEnemyAudio();
         // Detail modules contain openings: retain the opaque structural backing.
         foreach (string name in new[] { "North", "South", "East", "West", "Spine", "West partition", "East partition" })
         {
             var geometry = GameObject.Find(name);
-            if (geometry && geometry.TryGetComponent<Renderer>(out var renderer)) renderer.enabled = true;
+            if (!geometry || !geometry.TryGetComponent<Renderer>(out var renderer)) continue;
+            var backing = geometry.transform.Find("Opaque backing");
+            if (!backing)
+            {
+                var solid = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                solid.name = "Opaque backing";
+                UnityEngine.Object.DestroyImmediate(solid.GetComponent<Collider>());
+                solid.GetComponent<Renderer>().sharedMaterial = renderer.sharedMaterial;
+                solid.transform.SetParent(geometry.transform, false);
+                solid.transform.localScale = geometry.transform.localScale.x < geometry.transform.localScale.z
+                    ? new Vector3(.35f, 1, 1) : new Vector3(1, 1, .35f);
+                solid.isStatic = true;
+            }
+            renderer.enabled = false;
         }
         if (GameObject.Find(RootName)) return;
         palette = AssetDatabase.LoadAssetAtPath<Material>("Assets/_Project/Materials/SpaceStationKit.mat");
@@ -78,6 +93,23 @@ public static class LaboratoryArtPass
         }
     }
 
+    private static void InstallEnemyAudio()
+    {
+        foreach (var enemy in UnityEngine.Object.FindObjectsByType<ZombieAI>(FindObjectsSortMode.None))
+        {
+            var feedback = enemy.GetComponent<EnemyAudioFeedback>();
+            if (!feedback) feedback = enemy.gameObject.AddComponent<EnemyAudioFeedback>();
+            var settings = new SerializedObject(feedback);
+            foreach (var entry in new[] { ("footstep", "footstep_concrete_000"), ("attack", "impactPunch_medium_000"), ("death", "impactPunch_medium_000") })
+            {
+                var clip = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/ThirdParty/Kenney/ImpactSounds/Audio/" + entry.Item2 + ".ogg");
+                if (!clip) throw new InvalidOperationException("Missing enemy sound: " + entry.Item2);
+                settings.FindProperty(entry.Item1).objectReferenceValue = clip;
+            }
+            settings.ApplyModifiedPropertiesWithoutUndo();
+        }
+    }
+
     private static void Module(string name, Vector3 center, Vector3 size, float yaw, Transform parent)
     {
         string path = "Assets/ThirdParty/Kenney/SpaceStationKit/Models/" + name + ".fbx";
@@ -108,3 +140,4 @@ public static class LaboratoryArtPass
         return bounds;
     }
 }
+
