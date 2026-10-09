@@ -41,9 +41,9 @@ namespace ProtocoloLazaro
         }
         void Update()
         {
-            if(pulse&&emitter)pulse.text=emitter.Remaining<=0?"[Q] PULSO LISTO":"PULSO Â· "+Mathf.CeilToInt(emitter.Remaining)+" s";
+            if(pulse&&emitter)pulse.text=emitter.Remaining<=0?"[Q] PULSO LISTO":"PULSO \u00b7 "+Mathf.CeilToInt(emitter.Remaining)+" s";
             if(prompt&&player)prompt.text=player.Prompt;
-            if(ammo&&weapon&&weapon.IsReloading)ammo.text="RECARGANDOâ€¦";
+            if(ammo&&weapon&&weapon.IsReloading)ammo.text="RECARGANDO\u2026";
             else if(ammo&&weapon)SetAmmo(weapon.Magazine,weapon.Reserve);
         }
         void SetHealth(int a,int b)
@@ -52,11 +52,11 @@ namespace ProtocoloLazaro
         }
         void SetAmmo(int a,int b)
         {
-            if(ammo)ammo.text=$"MUNICIÃ“N   {a} / {b}";
+            if(ammo)ammo.text=$"MUNICI\u00d3N   {a} / {b}";
         }
         void SetMission(int a,int b)
         {
-            if(objective)objective.text=a==b?"MUESTRA ESTABLE Â· REGRESA A EXTRACCIÃ“N":$"REINICIA LAS ESTACIONES   {a} / {b}";
+            if(objective)objective.text=a==b?"MUESTRA ESTABLE \u00b7 REGRESA A EXTRACCI\u00d3N":$"REINICIA LAS ESTACIONES   {a} / {b}";
         }
         void ShowState(GameState state)
         {
