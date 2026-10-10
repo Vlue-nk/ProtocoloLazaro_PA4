@@ -28,6 +28,61 @@ namespace ProtocoloLazaro
             if (!condition) throw new Exception("LAZARO_TEST_FAIL " + name);
             Debug.Log("LAZARO_TEST_PASS " + name);
         }
+        private static void FreezeThreats()
+        {
+            foreach (var enemy in FindObjectsByType<ZombieAI>(FindObjectsSortMode.None))
+            {
+                enemy.enabled = false;
+                enemy.StopAllCoroutines();
+                var agent = enemy.GetComponent<NavMeshAgent>();
+                if (agent.enabled && agent.isOnNavMesh) agent.isStopped = true;
+            }
+        }
+        private static IEnumerator CompleteStation(PowerStation station, MissionManager mission)
+        {
+            station.Activate(mission);
+            Check(!station.IsCalibrating, "calibration requires installed fuse " + station.Sector);
+            var fuse = FindObjectsByType<MissionItem>(FindObjectsSortMode.None).Single(x => x.Station == station && x.Kind == MissionItemKind.Fuse);
+            fuse.Use();
+            Check(station.FuseCollected && !fuse.gameObject.activeSelf, "sector fuse collected once " + station.Sector);
+            station.InstallFuse();
+            station.Activate(mission);
+            var reinforcement=FindObjectsByType<ZombieAI>(FindObjectsSortMode.None).SingleOrDefault(z=>z.name=="Reserve infected "+(char)('A'+mission.Activated));
+            Check(reinforcement, "one limited reinforcement deployed");
+            yield return null;
+            Check(reinforcement.GetComponent<NavMeshAgent>().isOnNavMesh, "reinforcement attaches to navigation");
+            FreezeThreats();
+            var parallel=Instantiate(station.gameObject).GetComponent<PowerStation>();
+            parallel.CollectFuse();parallel.InstallFuse();parallel.Activate(mission);
+            Check(!parallel.IsCalibrating, "parallel calibration rejected");
+            Destroy(parallel.gameObject);
+            Check(station.IsCalibrating && !station.IsActive, "calibration starts " + station.Sector);
+            Check(!station.Adjust(2), "early panel adjustment rejected");
+            Time.timeScale = 15;
+            float deadline = Time.realtimeSinceStartup + 15;
+            for (int panel=1; panel<=2; panel++)
+            {
+                while(station.PendingAdjustment == 0 && Time.realtimeSinceStartup < deadline) yield return null;
+                Check(station.PendingAdjustment == panel, "calibration stops at panel " + panel);
+                float progress = station.Progress;
+                yield return new WaitForSeconds(2);
+                Check(Mathf.Approximately(progress, station.Progress), "unresolved adjustment blocks progress");
+                GameManager.Instance.Pause();
+                yield return new WaitForSecondsRealtime(.1f);
+                Check(!station.Adjust(panel) && Mathf.Approximately(progress, station.Progress), "pause blocks station interaction");
+                GameManager.Instance.Resume();
+                Time.timeScale = 15;
+                var kind = panel == 1 ? MissionItemKind.AdjustmentOne : MissionItemKind.AdjustmentTwo;
+                FindObjectsByType<MissionItem>(FindObjectsSortMode.None).Single(x => x.Station == station && x.Kind == kind).Use();
+                Check(station.PendingAdjustment == 0, "panel interaction resumes calibration");
+            }
+            while(!station.IsActive && Time.realtimeSinceStartup < deadline) yield return null;
+            Time.timeScale = 1;
+            Check(station.IsActive, "station completes calibration " + station.Sector);
+            int count = mission.Activated;
+            station.Activate(mission);
+            Check(mission.Activated == count, "station cannot count twice");
+        }
         private IEnumerator Start()
         {
             yield return null;
@@ -137,12 +192,16 @@ namespace ProtocoloLazaro
             var door = FindAnyObjectByType<ExtractionDoor>();
             door.TryOpen(GameManager.Instance);
             Check(GameManager.IsPlaying, "exit locked before objectives");
+            Check(!mission.CollectSample(), "sample locked before three calibrations");
             for (int i = stations.Length - 1; i >= 0; i--)
-            {
-                stations[i].Activate(mission);
-                stations[i].Activate(mission);
-            }
-            Check(mission.Activated == 3 && door.IsUnlocked, "unique station activation and unlock");
+                yield return CompleteStation(stations[i], mission);
+            Check(mission.Activated == 3 && !door.IsUnlocked, "three calibrations still require sample pickup");
+            door.TryOpen(GameManager.Instance);
+            Check(GameManager.IsPlaying, "extraction rejects missing sample");
+            var sample = FindObjectsByType<MissionItem>(FindObjectsSortMode.None).Single(x => x.Kind == MissionItemKind.Sample);
+            sample.Use();
+            Check(mission.HasSample && door.IsUnlocked && !sample.gameObject.activeSelf, "physical sample unlocks extraction");
+            Check(mission.Elapsed >= 165, "calibrations cannot finish instantaneously or in parallel");
             door.TryOpen(GameManager.Instance);
             Check(GameManager.Instance.State == GameState.Won, "victory");
             player.Damage(500);
@@ -173,9 +232,11 @@ namespace ProtocoloLazaro
             player.transform.position = aimedStation.transform.position + Vector3.back * 2;
             var aimingCamera = player.GetComponentInChildren<Camera>();
             aimingCamera.transform.LookAt(aimedStation.transform.position + Vector3.up * .85f);
+            aimedStation.CollectFuse();
+            aimedStation.InstallFuse();
             Physics.SyncTransforms();
             Check(player.GetComponent<PulseEmitter>().TryPulse(), "aimed station pulse emitted");
-            Check(aimedStation.IsActive && FindAnyObjectByType<MissionManager>().Activated == 1, "camera raycast activates aimed station");
+            Check(aimedStation.IsCalibrating && FindAnyObjectByType<MissionManager>().Activated == 0, "camera raycast starts calibration instead of immediate completion");
             GameManager.Instance.Menu();
             yield return null;
             yield return null;

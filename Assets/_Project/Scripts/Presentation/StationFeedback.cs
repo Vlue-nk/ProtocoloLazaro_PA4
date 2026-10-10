@@ -19,11 +19,14 @@ namespace ProtocoloLazaro
         {
             station=GetComponent<PowerStation>();
             station.Activated+=Activate;
+            station.CalibrationSignal+=Signal;
         }
         void OnDisable()
         {
             station.Activated-=Activate;
+            station.CalibrationSignal-=Signal;
         }
+        void Signal() { if(activatedSound)source.PlayOneShot(activatedSound,.3f); }
         void Activate()
         {
             if(activatedSound)source.PlayOneShot(activatedSound);

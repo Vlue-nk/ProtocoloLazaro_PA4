@@ -12,6 +12,7 @@ namespace ProtocoloLazaro
         private PulseEmitter emitter;
         private PlayerController player;
         private GameManager game;
+        private float nextObjective;
         void OnEnable()
         {
             health=FindFirstObjectByType<PlayerHealth>();
@@ -22,7 +23,7 @@ namespace ProtocoloLazaro
             game=FindFirstObjectByType<GameManager>();
             if(health)health.HealthChanged+=SetHealth;
             if(weapon)weapon.AmmoChanged+=SetAmmo;
-            if(mission)mission.ProgressChanged+=SetMission;
+            if(mission) { mission.ProgressChanged+=SetMission; mission.Changed+=SetObjective; }
             if(game)game.StateChanged+=ShowState;
         }
         void Start()
@@ -36,16 +37,18 @@ namespace ProtocoloLazaro
         {
             if(health)health.HealthChanged-=SetHealth;
             if(weapon)weapon.AmmoChanged-=SetAmmo;
-            if(mission)mission.ProgressChanged-=SetMission;
+            if(mission) { mission.ProgressChanged-=SetMission; mission.Changed-=SetObjective; }
             if(game)game.StateChanged-=ShowState;
         }
         void Update()
         {
+            if(Time.unscaledTime>=nextObjective) { SetObjective(); nextObjective=Time.unscaledTime+.2f; }
             if(pulse&&emitter)pulse.text=emitter.Remaining<=0?"[Q] PULSO LISTO":"PULSO \u00b7 "+Mathf.CeilToInt(emitter.Remaining)+" s";
             if(prompt&&player)prompt.text=player.Prompt;
             if(ammo&&weapon&&weapon.IsReloading)ammo.text="RECARGANDO\u2026";
             else if(ammo&&weapon)SetAmmo(weapon.Magazine,weapon.Reserve);
         }
+        void SetObjective() { if(objective&&mission)objective.text=mission.Objective; }
         void SetHealth(int a,int b)
         {
             if(hp)hp.text=$"SALUD   {a} / {b}";

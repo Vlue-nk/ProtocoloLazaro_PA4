@@ -37,22 +37,31 @@ namespace ProtocoloLazaro
             transform.Rotate(0,look.x,0);
             pitch=Mathf.Clamp(pitch-look.y,-80,80);
             view.transform.localRotation=Quaternion.Euler(pitch,0,0);
+            RefreshInteraction(k.eKey.wasPressedThisFrame);
+        }
+        public void InteractFromView() => RefreshInteraction(true);
+        public void RefreshInteraction(bool pressed=false)
+        {
+            if(!GameManager.IsPlaying)return;
             Prompt="";
             if(!Physics.Raycast(view.transform.position,view.transform.forward,out var h,3,~(1<<8),QueryTriggerInteraction.Ignore))return;
             var station=h.collider.GetComponentInParent<PowerStation>();
-            if(station)Prompt=station.IsActive?"ESTACIÓN EN LÍNEA":"[Q] REINICIAR ESTACIÓN";
+            if(station)Prompt=station.Prompt;
             if(h.distance>2.5f)return;
+            if(station && pressed)station.InstallFuse();
+            var item=h.collider.GetComponentInParent<MissionItem>();
+            if(item) { Prompt=item.Prompt; if(pressed)item.Use(); }
             var door=h.collider.GetComponentInParent<ExtractionDoor>();
             var med=h.collider.GetComponentInParent<Medkit>();
             if(door)
             {
-                Prompt=door.IsUnlocked?"[E] EXTRAER LA MUESTRA":"EXTRACCIÓN BLOQUEADA · ACTIVA LAS 3 ESTACIONES";
-                if(k.eKey.wasPressedThisFrame)door.TryOpen(GameManager.Instance);
+                Prompt=door.IsUnlocked?"[E] EXTRAER LA MUESTRA":"EXTRACCIÓN BLOQUEADA · RECUPERA LA MUESTRA";
+                if(pressed)door.TryOpen(GameManager.Instance);
             }
             if(med)
             {
                 Prompt="[E] BOTIQUÍN · +30 HP";
-                if(k.eKey.wasPressedThisFrame)med.Use(GetComponent<PlayerHealth>());
+                if(pressed)med.Use(GetComponent<PlayerHealth>());
             }
         }
     }

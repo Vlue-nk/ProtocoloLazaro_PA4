@@ -7,16 +7,20 @@ namespace ProtocoloLazaro
         private readonly Collider[] receivers=new Collider[16];
         private WeaponRaycast weapon;
         private PulseEmitter pulse;
+        private MissionManager mission;
         private static readonly ProfilerMarker Detection=new("Lazaro.NoiseDetection");
         void OnEnable()
         {
             weapon=FindFirstObjectByType<WeaponRaycast>();
             pulse=FindFirstObjectByType<PulseEmitter>();
+            mission=FindFirstObjectByType<MissionManager>();
+            if(mission)mission.Noise+=Emit;
             if(weapon)weapon.Noise+=Emit;
             if(pulse)pulse.Noise+=Emit;
         }
         void OnDisable()
         {
+            if(mission)mission.Noise-=Emit;
             if(weapon)weapon.Noise-=Emit;
             if(pulse)pulse.Noise-=Emit;
         }
