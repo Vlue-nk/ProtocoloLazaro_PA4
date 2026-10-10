@@ -32,6 +32,17 @@ namespace ProtocoloLazaro
         {
             yield return null;
             Check(GameManager.Instance.State == GameState.MainMenu, "initial menu state");
+            var cinematic = FindAnyObjectByType<MenuCinematic>();
+            Check(cinematic && !FindAnyObjectByType<ZombieAI>() && !FindAnyObjectByType<PlayerHealth>(), "menu cinematic has no gameplay actors");
+            var cameraPosition = cinematic.transform.position;
+            yield return new WaitForSecondsRealtime(1);
+            Check(Vector3.Distance(cameraPosition, cinematic.transform.position) > .01f, "menu camera moves");
+            string capture = Environment.GetEnvironmentVariable("LAZARO_MENU_CAPTURE");
+            if (!string.IsNullOrEmpty(capture))
+            {
+                ScreenCapture.CaptureScreenshot(capture);
+                yield return new WaitForSecondsRealtime(1);
+            }
             GameManager.Instance.Restart();
             yield return null;
             yield return null;
