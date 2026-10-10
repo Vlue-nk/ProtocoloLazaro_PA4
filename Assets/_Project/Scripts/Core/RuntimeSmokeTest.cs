@@ -5,6 +5,8 @@ using System.Linq;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.AI;
+using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.LowLevel;
 namespace ProtocoloLazaro
 {
     public sealed class RuntimeSmokeTest : MonoBehaviour
@@ -33,11 +35,30 @@ namespace ProtocoloLazaro
             GameManager.Instance.Restart();
             yield return null;
             yield return null;
+            // Exercise the same Input System events used by the player's keyboard.
+            var testKeyboard = InputSystem.AddDevice<Keyboard>();
+            InputSystem.QueueStateEvent(testKeyboard, new KeyboardState(Key.Escape));
+            yield return null;
+            yield return null;
+            Check(GameManager.Instance.State == GameState.Paused, "Escape input pauses gameplay");
+            InputSystem.QueueStateEvent(testKeyboard, new KeyboardState());
+            yield return null;
+            yield return null;
+            InputSystem.QueueStateEvent(testKeyboard, new KeyboardState(Key.Escape));
+            yield return null;
+            yield return null;
+            Check(GameManager.IsPlaying, "Escape input resumes gameplay");
+            InputSystem.RemoveDevice(testKeyboard);
             var player = FindAnyObjectByType<PlayerHealth>();
             var weapon = FindAnyObjectByType<WeaponRaycast>();
             var pulse = FindAnyObjectByType<PulseEmitter>();
             var enemies = FindObjectsByType<ZombieAI>(FindObjectsSortMode.None);
             Check(enemies.Length == 4, "four enemies restored");
+            var initialPositions = enemies.Select(enemy => enemy.transform.position).ToArray();
+            yield return new WaitForSeconds(1.2f);
+            for (int i = 0; i < enemies.Length; i++)
+                Check(Vector3.Distance(initialPositions[i], enemies[i].transform.position) > .1f,
+                    "infected patrol moves " + (i + 1));
             foreach (var enemy in enemies)
             {
                 Check(enemy.GetComponent<NavMeshAgent>().isOnNavMesh, "enemy on NavMesh");

@@ -31,6 +31,14 @@ namespace ProtocoloLazaro
         }
         void Start()
         {
+            // Scene agents are enabled only after NavMeshSurface.OnEnable has registered its data.
+            agent.enabled=true;
+            if(!agent.isOnNavMesh)
+            {
+                Debug.LogError("Infected could not attach to the saved NavMesh: "+name, this);
+                enabled=false;
+                return;
+            }
             player=FindFirstObjectByType<PlayerHealth>();
             StartCoroutine(SenseLoop());
         }

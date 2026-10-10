@@ -84,7 +84,7 @@ public static class BuildLazaroScene
   {
    var z=new GameObject("Infected "+(i+1));z.layer=9;z.transform.position=starts[i];var body=z.AddComponent<CapsuleCollider>();body.height=1.8f;body.center=Vector3.up*.9f;body.radius=.35f;
    var model=Model("GraveyardKit","character-zombie",starts[i],1.8f,z.transform);var animator=model.GetComponent<Animator>();if(!animator)animator=model.AddComponent<Animator>();animator.runtimeAnimatorController=controller;animator.applyRootMotion=false;
-   var agent=z.AddComponent<NavMeshAgent>();agent.radius=.35f;agent.height=1.8f;agent.speed=1.8f;agent.stoppingDistance=1.05f;agent.angularSpeed=240;var ai=z.AddComponent<ZombieAI>();
+   var agent=z.AddComponent<NavMeshAgent>();agent.enabled=false;agent.radius=.35f;agent.height=1.8f;agent.speed=1.8f;agent.stoppingDistance=1.05f;agent.angularSpeed=240;var ai=z.AddComponent<ZombieAI>();
    var points=new Transform[3];for(int j=0;j<3;j++){points[j]=new GameObject("Patrol "+i+"-"+j).transform;var candidate=starts[i]+new Vector3(j==1?2:-2,0,j==2?3:-2);points[j].position=NavMesh.SamplePosition(candidate,out var h,3,NavMesh.AllAreas)?h.position:starts[i];}
    var so=new SerializedObject(ai);var arr=so.FindProperty("waypoints");arr.arraySize=3;for(int j=0;j<3;j++)arr.GetArrayElementAtIndex(j).objectReferenceValue=points[j];so.ApplyModifiedPropertiesWithoutUndo();
   }
